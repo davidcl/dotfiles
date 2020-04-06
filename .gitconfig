@@ -1,0 +1,15 @@
+[user]
+	name = Clement David
+	email = clement.david@esi-group.com
+[core]
+	editor = vim
+	fileMode = false
+	whitespace = cr-at-eol
+[pull]
+	rebase = true
+[branch]
+	autosetuprebase = always
+[rebase]
+	autoStash = true
+[clean]
+	requireForce = false
