@@ -150,7 +150,6 @@ test -n "$PS1" && echo 1>&2 MEMCPY_CHECK_=$MEMCPY_CHECK_
 export SCI_DISABLE_EXCEPTION_CATCHING=1
 
 # debug alias
-
 export ASAN_OPTIONS=detect_leaks=0
 export JAVA_DEBUG_OPTIONS="-Xint -Xdebug -Xnoagent -Xrunjdwp:transport=dt_socket,address=8010,server=y,suspend=n -XX:+UnlockDiagnosticVMOptions -XX:-LogVMOutput -XX:-DisplayVMOutput -XX:-PrintVMOptions"
 export JAVA_PROFILE_OPTIONS="-agentlib:hprof=cpu=samples,depth=40"
@@ -168,18 +167,29 @@ alias scilab-limited="cgexec -g 'cpu,memory:limited' bin/scilab"
 alias davidcl.ovh="ssh vps448456.ovh.net -t 'tmux attach || tmux new'"
 alias borneo.local="ssh borneo.local -t 'tmux attach || tmux new'"
 
+# rust configuration
+export CARGO_TARGET_DIR="$HOME/.cargo/cache"
+export RUSTUP_HOME="/opt/rustup"
+
+# golang configuration
+export GOPATH="/home/davidcl/tools/go:/usr/share/gocode"
+
 # add specific tools to the path
 PATH="${PATH}:/home/davidcl/work/projects/projetP/qgen-2.0.0w-20150225-x86-linux-bin/bin"
 EMX_CODEGEN_PATH="/home/davidcl/work/projects/argo/toolset/EMXCodeGen/Build/x86_64-unknown-linux-gnu-Release"
 PATH="${PATH}:${EMX_CODEGEN_PATH}"
 
-export CARGO_TARGET_DIR="$HOME/.cargo/cache"
-export RUSTUP_HOME="/opt/rustup"
+# User specific environment and startup programs
+PATH=$PATH:$HOME/.local/bin:$HOME/bin
 
 # discard conda packages loading, the user is free to choose
 #export PATH=/opt/miniconda2/bin:$PATH
 
-# GOLANG config
-export GOPATH="/home/davidcl/tools/go:/usr/share/gocode"
-export PATH=$PATH:/home/davidcl/tools/go/bin
+# rust binaries
+PATH="$HOME/.cargo/bin:$PATH"
+
+# golang binaries
+PATH=$PATH:/home/davidcl/tools/go/bin
+
+export PATH 
 

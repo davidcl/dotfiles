@@ -543,7 +543,7 @@ __powerline_autosegments() {
 		__powerline_retval+=(python)
 	fi
 
-	if type -p git >/dev/null ; then
+	if false && type -p git >/dev/null ; then
 		__powerline_retval+=(git)
 	fi
 
