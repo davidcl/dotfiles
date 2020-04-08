@@ -1,0 +1,3 @@
+#!/bin/sh
+
+unzip -c $1 content.xml settings.xml styles.xml |xmlindent -f

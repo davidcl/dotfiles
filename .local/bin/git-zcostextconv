@@ -1,0 +1,8 @@
+#!/bin/sh
+
+#zipinfo $1
+unzip -p $1 content.xml |xmllint --format -
+#unzip -p $1 dictionary/dictionary.ser |hexdump 
+#zipdetails -v $1
+#hexdump -b $1
+

@@ -1,0 +1,7 @@
+#!/bin/sh
+
+tmux new-session -dA -c ~/work/branches/6.1/scilab \;\
+     splitw -h -c ~/work/branches/6.1-review/scilab \;\
+     select-pane -L \;\
+     attach
+

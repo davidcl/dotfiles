@@ -1,0 +1,8 @@
+[gerrit]
+username=clement.david@scilab-enterprises.com
+rebase=true
+host=codereview.scilab.org
+port=29418
+project=scilab/scilab.git
+defaultbranch=master
+

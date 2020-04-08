@@ -1,15 +1,37 @@
 [user]
-	name = Clement David
-	email = clement.david@esi-group.com
+    name = Clément DAVID
+    email = clement.david@esi-group.com
+[grep]
+    lineNumber = true
+[hooks]
+    astyle = /usr/bin/astyle
+    xmlindent = /usr/bin/xmlindent
+[diff]
+    tool = meld
+[push]
+	default = simple
 [core]
-	editor = vim
-	fileMode = false
-	whitespace = cr-at-eol
+    editor = vim
+    attributesfile = ~/.gitattributes
+[gitreview]
+    username = clement.david
+[merge]
+    tool = meld
+[diff "image"]
+    command = ~/.local/bin/git-imgdiff
+[diff "zip"]
+    textconv = unzip -c -a
+[diff "odf"]
+    textconv = ~/.local/bin/git-odftextconv
+[diff "zcos"]
+    textconv = ~/.local/bin/git-zcostextconv
+[diff "hdf5"]
+    textconv = /usr/bin/h5dump
+[alias]
+    tree = log --graph --decorate --pretty=oneline --abbrev-commit
+    st = status --porcelain
+    ls = ls-files
+    xa = cherry-pick --abort
+    xc = cherry-pick --continue
 [pull]
 	rebase = true
-[branch]
-	autosetuprebase = always
-[rebase]
-	autoStash = true
-[clean]
-	requireForce = false

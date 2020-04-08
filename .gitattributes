@@ -1,0 +1,10 @@
+*.gif diff=image
+*.jpg diff=image
+*.png diff=image
+*.h5  diff=hdf5
+*.sod diff=hdf5
+*.sod diff=hdf5
+*.zip diff=zip
+*.zcos diff=zcos
+*.odp diff=odf
+*.odt diff=odf
