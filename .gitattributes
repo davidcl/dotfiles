@@ -8,3 +8,10 @@
 *.zcos diff=zcos
 *.odp diff=odf
 *.odt diff=odf
+
+*.vcxproj   text eol=crlf
+*.sh        text eol=lf
+*.sci       text eol=lf
+*.tst       text eol=lf
+*.md        text eol=lf
+
