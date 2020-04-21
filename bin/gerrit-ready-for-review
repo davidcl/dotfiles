@@ -1,0 +1,6 @@
+#!/usr/bin/bash
+
+git push
+ssh -p 29418 clement.david@git.scilab.org \
+    gerrit review --verified +1 --code-review +1 "$(git rev-parse HEAD)"
+
