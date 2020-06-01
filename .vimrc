@@ -1,9 +1,11 @@
-set nocompatible              " be iMproved, required
-filetype off                  " required
-set tw=0
+set nocompatible                " be iMproved, required
+filetype off                    " required
 
-filetype plugin indent on    " required
-syntax on
+set tw=0                        " no text width limit
+set updatetime=300              " default is too long 4000ms
+
+filetype plugin indent on       " required
+syntax on                       " colors !!!
 
 " incremental search
 :set path+=**
