@@ -1,4 +1,4 @@
-#!/usr/bin/bash
+#!/usr/bin/env bash
 
 git push
 ssh -p 29418 clement.david@git.scilab.org \
