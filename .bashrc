@@ -183,6 +183,12 @@ export RUSTUP_HOME="/opt/rustup"
 # golang configuration
 export GOPATH="/home/davidcl/tools/go:/usr/share/gocode"
 
+# emsdk for WebAssembly
+if [ -f /home/davidcl/work/tools/emsdk/emsdk_env.sh ]; then
+    echo 'to load esdk use: source /home/davidcl/work/tools/emsdk/emsdk_env.sh'
+#    source /home/davidcl/work/tools/emsdk/emsdk_env.sh
+fi
+
 # add specific tools to the path
 PATH="${PATH}:/home/davidcl/work/projects/projetP/qgen-2.0.0w-20150225-x86-linux-bin/bin"
 EMX_CODEGEN_PATH="/home/davidcl/work/projects/argo/toolset/EMXCodeGen/Build/x86_64-unknown-linux-gnu-Release"
