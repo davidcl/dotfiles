@@ -8,12 +8,22 @@ filetype plugin indent on       " required
 syntax on                       " colors !!!
 
 " incremental search
-:set path+=**
-:set wildmenu
-:set incsearch
-:set hlsearch
+set path+=**
+set wildmenu
+set incsearch
+set hlsearch
+set ignorecase
+set smartcase
 " display the line numbers
-:set number
+set number
+set relativenumber
+" display information
+set laststatus=2
+set backspace=indent,eol,
+" personal preference
+nmap Q <Nop> " no Ex mode using 'Q'
+set noerrorbells visualbell t_vb=
+set mouse+=a
 
 "
 " C++ development
