@@ -16,7 +16,7 @@ export SVN_EDITOR=/usr/bin/vim
 
 # User specific aliases and functions
 alias dotfiles="/usr/bin/git --git-dir=/home/davidcl/.dotfiles.git/ --work-tree=/home/davidcl"
-alias make="LANG=en_US.utf8 nice make -j8"
+alias make="LANG=en_US.utf8 nice make -j$(nproc)"
 alias git="LANG=en_US.utf8 /usr/bin/git"
 alias xpath="xmllint --xpath"
 alias ping6_linklocal="ping6 -I enp7s0 ff02::1"
@@ -167,6 +167,12 @@ alias scilab-limited="cgexec -g 'cpu,memory:limited' bin/scilab"
 alias davidcl.ovh="ssh vps448456.ovh.net -t 'tmux attach || tmux new'"
 alias borneo.local="ssh borneo.local -t 'tmux attach || tmux new'"
 
+if ! command -v gcc-8 &>/dev/null
+then
+    export CC=gcc-8
+    export CXX=g++-8
+    export F77=gfortran-8
+fi
 # rust configuration
 export CARGO_TARGET_DIR="$HOME/.cargo/cache"
 export RUSTUP_HOME="/opt/rustup"
