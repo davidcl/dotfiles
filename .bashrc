@@ -5,6 +5,8 @@ if [ -f /etc/bashrc ]; then
         . /etc/bashrc
 fi
 
+shopt -s globstar
+
 # specific PS1
 #source /usr/share/git-core/contrib/completion/git-prompt.sh
 #PS1='[\u@\h \W$(__git_ps1 " (%s)")]\$ '
@@ -167,12 +169,13 @@ alias scilab-limited="cgexec -g 'cpu,memory:limited' bin/scilab"
 alias davidcl.ovh="ssh vps448456.ovh.net -t 'tmux attach || tmux new'"
 alias borneo.local="ssh borneo.local -t 'tmux attach || tmux new'"
 
-if ! command -v gcc-8 &>/dev/null
-then
+# C/C++/Fortran configuration
+if [ ! $(command -v gcc-8 &>/dev/null) ]; then
     export CC=gcc-8
     export CXX=g++-8
     export F77=gfortran-8
 fi
+
 # rust configuration
 export CARGO_TARGET_DIR="$HOME/.cargo/cache"
 export RUSTUP_HOME="/opt/rustup"
@@ -198,4 +201,19 @@ PATH="$HOME/.cargo/bin:$PATH"
 PATH=$PATH:/home/davidcl/tools/go/bin
 
 export PATH 
+
+# >>> conda initialize >>>
+# !! Contents within this block are managed by 'conda init' !!
+__conda_setup="$('/home/davidcl/miniconda3/bin/conda' 'shell.bash' 'hook' 2> /dev/null)"
+if [ $? -eq 0 ]; then
+    eval "$__conda_setup"
+else
+    if [ -f "/home/davidcl/miniconda3/etc/profile.d/conda.sh" ]; then
+        . "/home/davidcl/miniconda3/etc/profile.d/conda.sh"
+    else
+        export PATH="/home/davidcl/miniconda3/bin:$PATH"
+    fi
+fi
+unset __conda_setup
+# <<< conda initialize <<<
 
