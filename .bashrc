@@ -170,7 +170,7 @@ alias davidcl.ovh="ssh vps448456.ovh.net -t 'tmux attach || tmux new'"
 alias borneo.local="ssh borneo.local -t 'tmux attach || tmux new'"
 
 # C/C++/Fortran configuration
-if [ ! $(command -v gcc-8 &>/dev/null) ]; then
+if [ -e "$(command -v gcc-8)" ]; then
     export CC=gcc-8
     export CXX=g++-8
     export F77=gfortran-8
@@ -184,7 +184,7 @@ export RUSTUP_HOME="/opt/rustup"
 export GOPATH="/home/davidcl/tools/go:/usr/share/gocode"
 
 # emsdk for WebAssembly
-if [ -f /home/davidcl/work/tools/emsdk/emsdk_env.sh ]; then
+if shopt -q login_shell && [ -f /home/davidcl/work/tools/emsdk/emsdk_env.sh ]; then
     echo 'to load esdk use: source /home/davidcl/work/tools/emsdk/emsdk_env.sh'
 #    source /home/davidcl/work/tools/emsdk/emsdk_env.sh
 fi
