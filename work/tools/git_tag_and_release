@@ -1,0 +1,34 @@
+#!/bin/bash
+set -x
+
+if test ! -n "$1"; then
+	echo "no tag number, please provide an argument" 1>&2
+	exit 1
+fi
+
+sed -i "/^Version:/c\Version: $1" DESCRIPTION
+git add DESCRIPTION
+git commit -m "Update version to $1 before release"
+git tag "$1"
+TBX=${PWD##*/}
+
+# Sources
+git archive --prefix=$TBX-$1-src/ -o ../$TBX-$1-src.zip "$1" 
+
+# Binary
+cd ..
+mkdir $TBX-$1-bin
+cp -a -t $TBX-$1-bin/ $TBX/*
+rm -fr $TBX-$1-bin/.git
+find $TBX-$1-bin -type d -name help |xargs rm -fr 
+find $TBX-$1-bin -type d -name tests |xargs rm -fr 
+find $TBX-$1-bin/macros -name *.sci -delete
+find $TBX-$1-bin/ -name .gitignore -delete
+find $TBX-$1-bin/ -name build*.sce -delete
+find $TBX-$1-bin/ -name clean*.sce -delete
+find $TBX-$1-bin/sci_gateway -not \( -name *.dll -or -name *.sce \) -delete
+find $TBX-$1-bin/src -not \( -name *.h -or -name *.dll -or -name *.sce \) -delete
+zip -r $TBX-$1-bin.zip $TBX-$1-bin/
+rm -fr $TBX-$1-bin/ 
+cd $TBX
+
