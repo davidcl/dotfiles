@@ -9,7 +9,7 @@
 [diff]
     tool = meld
 [push]
-	default = simple
+    default = simple
 [core]
     editor = vim
     attributesfile = ~/.gitattributes
@@ -34,4 +34,4 @@
     xa = cherry-pick --abort
     xc = cherry-pick --continue
 [pull]
-	rebase = true
+    rebase = true

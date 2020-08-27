@@ -5,6 +5,11 @@ if [ -f /etc/bashrc ]; then
         . /etc/bashrc
 fi
 
+# WSL specific setup
+if [ ! -d /home/davidcl/work/tools -a -d /mnt/c/Users/cdd/Documents/work ]; then
+    sudo mount --bind /mnt/c/Users/cdd/Documents/work /home/davidcl/work
+fi
+
 shopt -s globstar
 
 # specific PS1

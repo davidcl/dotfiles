@@ -1,0 +1,14 @@
+#!/bin/sh
+
+# WSL specific setup
+if [ ! -d /home/davidcl/work/tools -a -d /mnt/c/Users/cdd/Documents/work ]; then
+    sudo mount --bind /mnt/c/Users/cdd/Documents/work /home/davidcl/work
+fi
+
+BRANCH=6.1
+
+tmux new-session -dA -c ~/work/branches/${BRANCH}/scilab \;\
+     splitw -h -c ~/work/branches/${BRANCH}-review/scilab \;\
+     select-pane -L \;\
+     attach
+
