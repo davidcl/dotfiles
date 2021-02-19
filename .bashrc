@@ -8,6 +8,7 @@ fi
 # WSL specific setup
 if [ ! -d /home/davidcl/work/tools -a -d /mnt/c/Users/cdd/Documents/work ]; then
     sudo mount --bind /mnt/c/Users/cdd/Documents/work /home/davidcl/work
+    export DISPLAY=127.0.1.1:0
 fi
 
 shopt -s globstar
