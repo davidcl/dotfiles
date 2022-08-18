@@ -19,7 +19,19 @@ shopt -s globstar
 . ${HOME}/.config/powerline.bash
 PROMPT_COMMAND='__update_ps1 $?'
 
-# SVN_EDITOR
+# C/C++/Fortran configuration
+if [ -e "$(command -v gcc-11)" ]; then
+    export CC=gcc-11
+    export CC_STR=" CC=gcc-11"
+    export CXX=g++-11
+    export CXX_STR=" CXX=g++-11"
+    export F77=gfortran-11
+    export F77_STR=" F77=gfortran-11"
+fi
+
+
+# EDITOR
+export EDITOR=/usr/bin/vim
 export SVN_EDITOR=/usr/bin/vim
 
 # User specific aliases and functions
@@ -33,7 +45,7 @@ alias scikill="kill -9 \`pidof lt-scilab-bin lt-scilab-cli-bin scilab-bin scilab
 alias scidebug="gdb -command=gdb.txt --pid=\`pidof lt-scilab-bin lt-scilab-cli-bin scilab-bin scilab-cli-bin\` "
 alias scipid="pidof lt-scilab-bin lt-scilab-cli-bin scilab-bin scilab-cli-bin"
 
-alias sciconfig="JAVA_HOME=/etc/alternatives/java_sdk/ ./configure --enable-silent-rules --without-emf " 
+alias sciconfig="JAVA_HOME=/etc/alternatives/java_sdk/ ./configure --enable-silent-rules --without-emf "${CC_STR}${CXX_STR}${F77_STR} 
 alias clangconfig="sciconfig CC=clang CXX=clang++"
 alias scireconfig="find . -name '*.Plo' -delete && ./config.status"
 alias debugmake="make CFLAGS='-O0 -g -fdiagnostics-color' CXXFLAGS='-O0 -g -fdiagnostics-color' FFLAGS='-O0 -g -fdiagnostics-color'"
@@ -175,12 +187,6 @@ alias scilab-limited="cgexec -g 'cpu,memory:limited' bin/scilab"
 alias davidcl.ovh="ssh vps448456.ovh.net -t 'tmux attach || tmux new'"
 alias borneo.local="ssh borneo.local -t 'tmux attach || tmux new'"
 
-# C/C++/Fortran configuration
-if [ -e "$(command -v gcc-8)" ]; then
-    export CC=gcc-8
-    export CXX=g++-8
-    export F77=gfortran-8
-fi
 
 # rust configuration
 export CARGO_TARGET_DIR="$HOME/.cargo/cache"
