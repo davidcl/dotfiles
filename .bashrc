@@ -6,9 +6,16 @@ if [ -f /etc/bashrc ]; then
 fi
 
 # WSL specific setup
-if [ ! -d /home/davidcl/work/tools -a -d /mnt/c/Users/cdd/Documents/work ]; then
-    sudo mount --bind /mnt/c/Users/cdd/Documents/work /home/davidcl/work
+if [ -f /etc/wsl.conf ]; then
+    if [ ! -d /home/davidcl/work/tools -a -d /mnt/c/Users/cdd/Documents/work ]; then
+        sudo mount --bind /mnt/c/Users/cdd/Documents/work /home/davidcl/work
+    fi
     export DISPLAY=127.0.1.1:0
+    # Mount Alpine vhdx as a workdir
+    if [ ! -d /mnt/wsl/work ]; then
+        mkdir /mnt/wsl/work
+        wsl.exe -d Alpine mount --bind /work /mnt/wsl/work
+    fi
 fi
 
 shopt -s globstar
