@@ -7,14 +7,14 @@ fi
 
 # WSL specific setup
 if [ -f /etc/wsl.conf ]; then
-    if [ ! -d /home/davidcl/work/tools -a -d /mnt/c/Users/cdd/Documents/work ]; then
-        sudo mount --bind /mnt/c/Users/cdd/Documents/work /home/davidcl/work
-    fi
     export DISPLAY=127.0.1.1:0
     # Mount Alpine vhdx as a workdir
-    if [ ! -d /mnt/wsl/work ]; then
-        mkdir /mnt/wsl/work
-        wsl.exe -d Alpine mount --bind /work /mnt/wsl/work
+    if [ ! -d /mnt/wsl/work ] ; then
+       mkdir /mnt/wsl/work
+       wsl.exe -d Alpine mount --bind /work /mnt/wsl/work
+    fi
+    if [ ! -d $HOME/work ] ; then
+        ln -s /mnt/wsl/work $HOME/work
     fi
 fi
 
@@ -43,7 +43,7 @@ export SVN_EDITOR=/usr/bin/vim
 
 # User specific aliases and functions
 alias dotfiles="/usr/bin/git --git-dir=/home/davidcl/.dotfiles.git/ --work-tree=/home/davidcl"
-alias make="LANG=en_US.utf8 nice make -j$(nproc)"
+alias make="LANG=en_US.utf8 nice make -j\$(nproc)"
 alias git="LANG=en_US.utf8 /usr/bin/git"
 alias xpath="xmllint --xpath"
 alias ping6_linklocal="ping6 -I enp7s0 ff02::1"
@@ -59,7 +59,7 @@ alias debugmake="make CFLAGS='-O0 -g -fdiagnostics-color' CXXFLAGS='-O0 -g -fdia
 
 # to execute desktop files
 function desktop-open {
-    `grep '^Exec' $1 | sed 's/^Exec=//' | sed 's/%.//'`
+    eval "$(grep '^Exec' $1 | sed 's/^Exec=//' | sed 's/%.//')"
 }
 
 # Specific functions
@@ -183,7 +183,7 @@ export JAVA_PROFILE_OPTIONS="-agentlib:hprof=cpu=samples,depth=40"
 # export _JAVA_OPTIONS=$JAVA_DEBUG_OPTIONS
 alias scilab-debug="_JAVA_OPTIONS=\"$JAVA_DEBUG_OPTIONS\" bin/scilab"
 alias scilab-profile="_JAVA_OPTIONS=\"$JAVA_PROFILE_OPTIONS\" bin/scilab"
-alias scilab-valgrind="SCI=$(pwd) ./libtool --mode=execute valgrind --show-below-main=yes --num-callers=12 --demangle=yes --leak-check=full --show-reachable=yes --smc-check=all --gen-suppressions=all --show-below-main=yes --track-origins=yes --log-file=valgrind.log scilab-cli-bin -nwni -profiling"
+alias scilab-valgrind='SCI=$(pwd) ./libtool --mode=execute valgrind --show-below-main=yes --num-callers=12 --demangle=yes --leak-check=full --show-reachable=yes --smc-check=all --gen-suppressions=all --show-below-main=yes --track-origins=yes --log-file=valgrind.log scilab-cli-bin -nwni -profiling'
 alias scilab-master="~/work/branches/master/scilab/bin/scilab"
 alias scilab-next="~/work/branches/6.0/scilab/bin/scilab"
 alias scilab-stable="EGL_LOG_LEVEL=fatal ~/work/releases/scilab-6.0.2/bin/scilab"
