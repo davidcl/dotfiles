@@ -27,6 +27,14 @@ shopt -s globstar
 PROMPT_COMMAND='__update_ps1 $?'
 
 # C/C++/Fortran configuration
+if [ -e "$(command -v gcc-8)" ]; then
+    export CC=gcc-8
+    export CC_STR=" CC=gcc-8"
+    export CXX=g++-8
+    export CXX_STR=" CXX=g++-8"
+    export F77=gfortran-8
+    export F77_STR=" F77=gfortran-8"
+fi
 if [ -e "$(command -v gcc-11)" ]; then
     export CC=gcc-11
     export CC_STR=" CC=gcc-11"
