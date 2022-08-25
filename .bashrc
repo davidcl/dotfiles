@@ -16,6 +16,8 @@ if [ -f /etc/wsl.conf ]; then
     if [ ! -d $HOME/work ] ; then
         ln -s /mnt/wsl/work $HOME/work
     fi
+    # Use wsl-vpnkit to by-pass VPN DNS and network
+    wsl.exe -d wsl-vpnkit service wsl-vpnkit start &>/dev/null
 fi
 
 shopt -s globstar
