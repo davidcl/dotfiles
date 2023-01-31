@@ -18,6 +18,10 @@ if [ -f /etc/wsl.conf ]; then
     fi
     # Use wsl-vpnkit to by-pass VPN DNS and network
     wsl.exe -d wsl-vpnkit service wsl-vpnkit start &>/dev/null
+    # Launch dockerd
+    if [ -x /usr/bin/dockerd ]; then
+        /mnt/c/Windows/System32/wsl.exe -d $WSL_DISTRO_NAME sh -c "nohup sudo -b dockerd </dev/null >$HOME/dockerd.log 2>&1"
+    fi
 fi
 
 shopt -s globstar
@@ -226,9 +230,6 @@ PATH="${PATH}:${EMX_CODEGEN_PATH}"
 # User specific environment and startup programs
 PATH=$PATH:$HOME/.local/bin:$HOME/bin
 
-# discard conda packages loading, the user is free to choose
-#export PATH=/opt/miniconda2/bin:$PATH
-
 # rust binaries
 PATH="$HOME/.cargo/bin:$PATH"
 
@@ -239,14 +240,14 @@ export PATH
 
 # >>> conda initialize >>>
 # !! Contents within this block are managed by 'conda init' !!
-__conda_setup="$('/home/davidcl/miniconda3/bin/conda' 'shell.bash' 'hook' 2> /dev/null)"
+__conda_setup="$('/home/davidcl/work/tools/miniconda3/bin/conda' 'shell.bash' 'hook' 2> /dev/null)"
 if [ $? -eq 0 ]; then
     eval "$__conda_setup"
 else
-    if [ -f "/home/davidcl/miniconda3/etc/profile.d/conda.sh" ]; then
-        . "/home/davidcl/miniconda3/etc/profile.d/conda.sh"
+    if [ -f "/home/davidcl/work/tools/miniconda3/etc/profile.d/conda.sh" ]; then
+        . "/home/davidcl/work/tools/miniconda3/etc/profile.d/conda.sh"
     else
-        export PATH="/home/davidcl/miniconda3/bin:$PATH"
+        export PATH="/home/davidcl/work/tools/miniconda3/bin:$PATH"
     fi
 fi
 unset __conda_setup

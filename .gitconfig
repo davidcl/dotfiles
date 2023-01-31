@@ -10,6 +10,7 @@
     tool = meld
 [push]
     default = simple
+	autoSetupRemote = true
 [core]
     editor = vim
     attributesfile = ~/.gitattributes
@@ -29,10 +30,22 @@
 [diff "hdf5"]
     textconv = /usr/bin/h5dump
 [alias]
+    lola = log --graph --decorate --pretty=oneline --abbrev-commit --all
     tree = log --graph --decorate --pretty=oneline --abbrev-commit
     st = status --porcelain
     ls = ls-files
-    xa = cherry-pick --abort
-    xc = cherry-pick --continue
+    r61 = checkout -B 6.1 origin/6.1
+    r62 = checkout -B master origin/master
+    cob = checkout -B
 [pull]
-    rebase = true
+	rebase = true
+[filter "lfs"]
+	clean = git-lfs clean -- %f
+	smudge = git-lfs smudge -- %f
+	process = git-lfs filter-process
+    required = true
+
+[init]
+	defaultBranch = main
+[rebase]
+	autoStash = true
