@@ -7,7 +7,6 @@ fi
 
 # WSL specific setup
 if [ -f /etc/wsl.conf ]; then
-    export DISPLAY=127.0.1.1:0
     # Mount Alpine vhdx as a workdir
     if [ ! -d /mnt/wsl/work ] ; then
        mkdir /mnt/wsl/work
@@ -18,10 +17,13 @@ if [ -f /etc/wsl.conf ]; then
     fi
     # Use wsl-vpnkit to by-pass VPN DNS and network
     wsl.exe -d wsl-vpnkit service wsl-vpnkit start &>/dev/null
-    # Launch dockerd
+    # Launch dockerd on this distro
     if [ -x /usr/bin/dockerd ]; then
         /mnt/c/Windows/System32/wsl.exe -d $WSL_DISTRO_NAME sh -c "nohup sudo -b dockerd </dev/null >$HOME/dockerd.log 2>&1"
     fi
+    # set the VcXsrv DISPLAY
+    WSL_HOST_IP=$(ipconfig.exe | grep 'vEthernet (WSL)' -A4 | cut -d":" -f 2 | tail -n1 | sed -e 's/\s*//g')
+    export DISPLAY=$WSL_HOST_IP:88
 fi
 
 shopt -s globstar
