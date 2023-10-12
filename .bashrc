@@ -15,8 +15,7 @@ if [ -f /etc/wsl.conf ]; then
     if [ ! -d $HOME/work ] ; then
         ln -s /mnt/wsl/work $HOME/work
     fi
-    # Use wsl-vpnkit to by-pass VPN DNS and network
-    wsl.exe -d wsl-vpnkit service wsl-vpnkit start &>/dev/null
+    # wsl-vpnkit should be installed on the host to by-pass VPN DNS
     # Launch dockerd on this distro
     if [ -x /usr/bin/dockerd ]; then
         /mnt/c/Windows/System32/wsl.exe -d $WSL_DISTRO_NAME sh -c "nohup sudo -b dockerd </dev/null >$HOME/dockerd.log 2>&1"
