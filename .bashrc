@@ -10,7 +10,9 @@ if [ -f /etc/wsl.conf ]; then
     # Mount Alpine vhdx as a workdir
     if [ ! -d /mnt/wsl/work ] ; then
        mkdir /mnt/wsl/work
-       wsl.exe -d Alpine mount --bind /work /mnt/wsl/work
+    fi
+    if [ -z "$(ls -A /mnt/wsl/work)" ]; then
+        wsl.exe -d Alpine mount --bind /work /mnt/wsl/work
     fi
     if [ ! -d $HOME/work ] ; then
         ln -s /mnt/wsl/work $HOME/work
@@ -21,11 +23,9 @@ if [ -f /etc/wsl.conf ]; then
         /mnt/c/Windows/System32/wsl.exe -d $WSL_DISTRO_NAME sh -c "nohup sudo -b dockerd </dev/null >$HOME/dockerd.log 2>&1"
     fi
     # set the VcXsrv DISPLAY
-    WSL_HOST_IP=$(ipconfig.exe | grep 'vEthernet (WSL)' -A4 | cut -d":" -f 2 | tail -n1 | sed -e 's/\s*//g')
+    WSL_HOST_IP=$(ipconfig.exe | grep 'vEthernet (WSL' -A4 | cut -d":" -f 2 | tail -n1 | sed -e 's/\s*//g')
     export DISPLAY=$WSL_HOST_IP:88
 fi
-
-shopt -s globstar
 
 # specific PS1
 #source /usr/share/git-core/contrib/completion/git-prompt.sh
@@ -50,7 +50,14 @@ if [ -e "$(command -v gcc-11)" ]; then
     export F77=gfortran-11
     export F77_STR=" F77=gfortran-11"
 fi
-
+if [ -e "$(command -v gcc-16)" ]; then
+    export CC=gcc-16
+    export CC_STR=" CC=gcc-16"
+    export CXX=g++-16
+    export CXX_STR=" CXX=g++-16"
+    export F77=gfortran-16
+    export F77_STR=" F77=gfortran-16"
+fi
 
 # EDITOR
 export EDITOR=/usr/bin/vim
@@ -235,22 +242,9 @@ PATH=$PATH:$HOME/.local/bin:$HOME/bin
 PATH="$HOME/.cargo/bin:$PATH"
 
 # golang binaries
-PATH=$PATH:/home/davidcl/tools/go/bin
+PATH="$PATH:/home/davidcl/tools/go/bin"
+
+# OCaml binaries
+ PATH="$PATH:/home/davidcl/.opam/default/bin"
 
 export PATH 
-
-# >>> conda initialize >>>
-# !! Contents within this block are managed by 'conda init' !!
-__conda_setup="$('/home/davidcl/work/tools/miniconda3/bin/conda' 'shell.bash' 'hook' 2> /dev/null)"
-if [ $? -eq 0 ]; then
-    eval "$__conda_setup"
-else
-    if [ -f "/home/davidcl/work/tools/miniconda3/etc/profile.d/conda.sh" ]; then
-        . "/home/davidcl/work/tools/miniconda3/etc/profile.d/conda.sh"
-    else
-        export PATH="/home/davidcl/work/tools/miniconda3/bin:$PATH"
-    fi
-fi
-unset __conda_setup
-# <<< conda initialize <<<
-
