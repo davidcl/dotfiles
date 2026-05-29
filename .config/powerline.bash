@@ -1,5 +1,18 @@
 # cf. https://gitlab.com/bersace/powerline.bash
 
+__powerline_min_bash_version=4.2.46  # RHEL7
+# invocation sort équivalent à GNU sort --version-sort --check=quiet
+if ! printf "$__powerline_min_bash_version\n%s" "${BASH_VERSION-0}" | sort -n -t . -k 1,1 -k 2,2 -k 3,3 -c 2>/dev/null ; then
+	echo "erreur: powerline.bash requiert bash, en version $__powerline_min_bash_version ou supérieur." >&2
+	return
+fi
+unset __powerline_min_bash_version
+
+if ! locale | grep -Eiq 'utf-?8' &> /dev/null ; then
+	echo "erreur: powerline.bash requiert un terminal en UTF-8." >&2
+	return
+fi
+
 # Cette variable globale permet de retourner une valeurs à du code appelant
 # sans passer par un sous-shell. Cela optimise énormément les performances.
 # Cette valeur doit toujours être un tableau, contenant une seule valeur si la
@@ -26,9 +39,9 @@ __update_ps1() {
 	for segname in ${POWERLINE_SEGMENTS-hostname pwd status} ; do
 		"__powerline_segment_${segname}" "$last_exit_code"
 		if [ "${POWERLINE_DIRECTION}" = "ltr" ] ; then
-			segments+=("${__powerline_retval[@]}")
+			segments+=("${__powerline_retval[@]-}")
 		else
-			segments=("${__powerline_retval[@]}" "${segments[@]}")
+			segments=("${__powerline_retval[@]}" "${segments[@]-}")
 		fi
 	done
 
@@ -70,8 +83,10 @@ __powerline_init() {
 
 	__powerline_palette
 	__powerline_context[palette]="${__powerline_retval[0]}"
+	__powerline_chassis
+	__powerline_context[chassis]="${__powerline_retval[0]}"
 	__powerline_autoicons
-	__powerline_hostname_class
+	__powerline_hostname_class "${__powerline_context[chassis]}"
 	__powerline_context[hostname-class]="${__powerline_retval[0]}"
 	# Initialiser les segments à partir de l'environnement.
 	__powerline_autosegments "${__powerline_context[hostname-class]}"
@@ -87,7 +102,7 @@ __powerline_init() {
 	# juste avant la sortie de la commande.
 	color="${__powerline_colors[sortie-commande]}"
 	color="${color/#48;/38;}"
-	PS0="${PS0-}\\[\e[${color}m\\]"
+	PS0="\e[${color}m${PS0-}"
 }
 
 
@@ -95,18 +110,31 @@ __powerline_autoicons() {
 	# Configurer les séparateurs
 	local mode
 	mode=${POWERLINE_ICONS-auto}
+
+	if [ "${mode}" = "auto" ] ; then
+		case "$TERM" in
+			*256color|*-termite|*-direct|*-kitty)
+				mode=powerline
+				;;
+			*)
+				mode=compat
+				;;
+		esac
+	fi
+
+	# On commence en flat, compat maximale.
 	__powerline_icons=(
-		# Par défaut, les valeurs powerline.
+		[sep]=""
+		[sep-fin]=""
+
 		[architecture]=""
 		[docker]=""
 		[etckeeper]=""
 		[fail]="✘"
-		[git]=$'\uE0A0 '  # de la police Powerline
+		[git]=""
 		[git-detached]="@"
 		[home]="~"
-		[hostname]=""
 		[invite]="\\$"
-		[k8s]=$'\u2638 '  # de la police Powerline
 		[newmail]="M"
 		[openstack]="¤"
 		[pwd]=""
@@ -121,11 +149,14 @@ __powerline_autoicons() {
 		[elementary]="e"
 		[fedora]="f"
 		[freebsd]="BSD"
+		[openbsd]="BSD"
+		[netbsd]="BSD"
 		[gentoo]="G"
 		[linux]="linux"
 		[linuxmint]="lm"
 		[logo-inconnu]="?"
 		[manjaro]="M"
+		[nixos]="n"
 		[raspbian]="RPI"
 		[redhat]="RH"
 		[slackware]=".S"
@@ -134,53 +165,74 @@ __powerline_autoicons() {
 		[windows]="#"
 	)
 
-	if [ "${POWERLINE_DIRECTION}" = "ltr" ] ; then
-		__powerline_icons+=(
-			[sep]=$'\uE0B0'
-			[sep-fin]=$'\uE0B1'
-		)
-	else
-		__powerline_icons+=(
-			[sep]=$'\uE0B2'
-			[sep-fin]=$'\uE0B3'
-		)
-	fi
-
-	if [ "${mode}" = "auto" ] ; then
-		case "$TERM" in
-			*256color|*-termite|*-direct|*-kitty)
-				mode=powerline
-				;;
-			*)
-				mode=compat
-				;;
-		esac
-	fi
+	case "${mode}" in
+		powerline|icons-in-terminal|nerd-fonts)
+			if [ "${POWERLINE_DIRECTION}" = "ltr" ] ; then
+				__powerline_icons+=(
+					[sep]=$'\uE0B0'
+					[sep-fin]=$'\uE0B1'
+				)
+			else
+				__powerline_icons+=(
+					[sep]=$'\uE0B2'
+					[sep-fin]=$'\uE0B3'
+				)
+			fi
+			;;
+	esac
 
 	# Attention. Les icônes sont déclarés avec l'a notation $'\uXXXX'. XXXX
 	# est le code UNICODE (pas l'encodage UTF-8). Parfois, il faut ajouter
-	# un espace pour les icônes larges. Bash 4.2 en CentOS7 plante
+	# un espace pour les icônes larges. Bash 4.2 en RHEL7 plante
 	# violemment si on injecte l'espace finale avec le symbole unicode. Le
 	# contournement est de concaténer avec un espace dans une chaîne
 	# traditionnelle.
 	case "${mode}" in
 		compat)
 			__powerline_icons+=(
-				[git]=""
-				[k8s]="*"
 				[sep]=$'\u25B6'
 				[sep-fin]='>'
+
+				[k8s]="*"
 			)
 			;;
 		powerline)
-			;;
-		flat)
 			__powerline_icons+=(
-				[sep]=""
-				[sep-fin]=""
+				[git]=$'\uE0A0 '
+				[k8s]=$'\u2638 '
 			)
 			;;
+		flat)
+			;;
 		icons-in-terminal)
+			# Évite l'accumulation de valeurs dans bash 4.2 RHEL7
+			unset "__powerline_icons[fail]"
+			unset "__powerline_icons[git-detached]"
+			unset "__powerline_icons[home]"
+			unset "__powerline_icons[newmail]"
+			unset "__powerline_icons[openstack]"
+			unset "__powerline_icons[alpine]"
+			unset "__powerline_icons[apple]"
+			unset "__powerline_icons[arch]"
+			unset "__powerline_icons[centos]"
+			unset "__powerline_icons[debian]"
+			unset "__powerline_icons[elementary]"
+			unset "__powerline_icons[fedora]"
+			unset "__powerline_icons[freebsd]"
+			unset "__powerline_icons[netbsd]"
+			unset "__powerline_icons[gentoo]"
+			unset "__powerline_icons[linux]"
+			unset "__powerline_icons[logo-inconnu]"
+			unset "__powerline_icons[linuxmint]"
+			unset "__powerline_icons[manjaro]"
+			unset "__powerline_icons[nixos]"
+			unset "__powerline_icons[raspbian]"
+			unset "__powerline_icons[redhat]"
+			unset "__powerline_icons[slackware]"
+			unset "__powerline_icons[suse]"
+			unset "__powerline_icons[ubuntu]"
+			unset "__powerline_icons[windows]"
+
 			__powerline_icons+=(
 				[architecture]=$'\uE383'    # fa-microchip
 				[docker]=$'\uE8EA '
@@ -190,13 +242,21 @@ __powerline_autoicons() {
 				[git-detached]=$'\uF0C1 '
 				[home]=$'\uE67D '
 				[horloge]=$'\uE0F7 '
-				[hostname]=$'\uE4BA '
 				[jobs]=$'\ue691 '
 				[k8s]=$'\u2638 '
 				[newmail]=$'\uE0E4 '
 				[openstack]=$'\uE574 '
 				[pwd]=$'\uE015 '
 				[python]=$'\uEE10 '
+
+				# chassis
+				[laptop]=$'\uE4BA '
+				[server]=$'\uE075'
+				[vm]=$'\uE075'
+				[handheld]=$'\uE1D0'
+				[tablet]=$'\uE1CF'
+				[convertible]=$'\uE1CF'
+				[container]=$'\uE089'
 
 				# Logos
 				[alpine]=$'\uE9F4'
@@ -207,11 +267,13 @@ __powerline_autoicons() {
 				[elementary]=$'\uE9EA'
 				[fedora]=$'\uE9DC'
 				[freebsd]=$'\uE9E7'
+				[netbsd]=$'\uEDFA'
 				[gentoo]=$'\uE9E9'
 				[logo-inconnu]=$'\uE025'
 				[linux]=$'\uE23A'
 				[linuxmint]=$'\uE9DD'
 				[manjaro]=$'\uE9F1'
+				[nixos]=$'\uF313'
 				[raspbian]=$'\uE9F0'
 				[suse]=$'\uE9E1'
 				[slackware]=$'\uE9E3'
@@ -221,21 +283,62 @@ __powerline_autoicons() {
 			)
 			;;
 		nerd-fonts)
+			# Évite l'accumulation de valeurs dans bash 4.2 RHEL7
+			unset "__powerline_icons[fail]"
+			unset "__powerline_icons[git-detached]"
+			unset "__powerline_icons[home]"
+			unset "__powerline_icons[newmail]"
+			unset "__powerline_icons[openstack]"
+			unset "__powerline_icons[alpine]"
+			unset "__powerline_icons[apple]"
+			unset "__powerline_icons[arch]"
+			unset "__powerline_icons[centos]"
+			unset "__powerline_icons[debian]"
+			unset "__powerline_icons[elementary]"
+			unset "__powerline_icons[fedora]"
+			unset "__powerline_icons[freebsd]"
+			unset "__powerline_icons[openbsd]"
+			unset "__powerline_icons[netbsd]"
+			unset "__powerline_icons[gentoo]"
+			unset "__powerline_icons[linux]"
+			unset "__powerline_icons[logo-inconnu]"
+			unset "__powerline_icons[linuxmint]"
+			unset "__powerline_icons[manjaro]"
+			unset "__powerline_icons[nixos]"
+			unset "__powerline_icons[raspbian]"
+			unset "__powerline_icons[redhat]"
+			unset "__powerline_icons[slackware]"
+			unset "__powerline_icons[suse]"
+			unset "__powerline_icons[ubuntu]"
+			unset "__powerline_icons[windows]"
+
 			# cf. https://www.nerdfonts.com/cheat-sheet
 			__powerline_icons+=(
-				[architecture]=$'\uFB19'   # nf-mdi-chip
-				[docker]=$'\uF308 '        # nf-linux-docker
-				[etckeeper]=$'\uF992 '     # nf-mdi-message_settings
-				[fail]=$'\uF071 '          # nf-fa-exclamation_triangle
-				[git-detached]=$'\uF06A '  # nf-fa-exclamation_circle
-				[git]=$'\uE725 '           # nf-dev-git_branch
-				[home]=$'\uF7DB '          # nf-mdi-home
-				[hostname]=$'\uF015 '      # nf-fa-home
-				[k8s]=$'\uFD31 '           # nf-mdi-ship_wheel
-				[newmail]=$'\uFBCD'        # nf-mdi-email_alert
-				[openstack]=$'\uFCB4 '     # nf-mdi-cloud_tags
-				[pwd]=$'\uF07B '           # nf-fa-folder
-				[python]=$'\uE235 '        # nf-fae-python
+				[architecture]=$'\UF061A'  # nf-md-chip
+				[docker]=$'\uF308'         # nf-linux-docker
+				[etckeeper]=$'\uF013'      # nf-fa-gear
+				[fail]=$'\uF071'           # nf-fa-exclamation_triangle
+				[git-detached]=$'\uF06A '   # nf-fa-exclamation_circle
+				[git]=$'\uE725'            # nf-dev-git_branch
+				[home]=$'\UF02DC'          # nf-md-home
+				[horloge]=$'\uF017'        # nf-fa-clock
+				[jobs]=$'\uF08e'           # nf-fa-arrow_up_right_from_square
+				[k8s]=$'\UF0833'           # nf-md-ship_wheel
+				[aws]=$'\uf0ef'            # nf-fa-aws
+				[newmail]=$'\UF06CF'       # nf-md-email_alert
+				[openstack]=$'\UF07B6'     # nf-md-cloud_tags
+				[pwd]=$'\uF07B'            # nf-fa-folder
+				[python]=$'\uE235'         # nf-fae-python
+
+				# chassis
+				[desktop]=$'\uF108'        # nd-fa-desktop
+				[laptop]=$'\uF109'         # nf-fa-laptop
+				[tablet]=$'\uF10A'         # nf-fa-tablet
+				[convertible]=$'\uF10A'    # nf-fa-tablet
+				[handset]=$'\uF10b'        # nf-fa-mobile_phone
+				[vm]=$'\UF048D'            # nf-md-server_network
+				[server]=$'\UF048B'        # nf-md-server
+				[container]=$'\uF4B7'      # nf-oct-container
 
 				# logos
 				[alpine]=$'\uF300'         # nf-linux-alpine
@@ -246,11 +349,14 @@ __powerline_autoicons() {
 				[elementary]=$'\uF309'     # nf-linux-elementary
 				[fedora]=$'\uF30A'         # nf-linux-fedora
 				[freebsd]=$'\uF30C'        # nf-linux-freebsd
+				[openbsd]=$'\uF328'        # nf-linux-openbsd
+				[netbsd]=$'\uF024'         # nf-fa-flag
 				[gentoo]=$'\uF30D'         # nf-linux-gentoo
 				[linux]=$'\uF31A'          # nf-linux-tux
 				[linuxmint]=$'\uF30E'      # nf-linux-linuxmint
 				[logo-inconnu]=$'\uE795'   # nf-dev-terminal
 				[manjaro]=$'\uF312'        # nf-linux-manjaro
+				[nixos]=$'\uF313'          # nf-linux-nixos
 				[raspbian]=$'\uF315'       # nf-linux-raspbian
 				[redhat]=$'\uF316'         # nf-linux-redhat
 				[slackware]=$'\uF318'      # nf-linux-slackware
@@ -269,6 +375,47 @@ __powerline_autoicons() {
 		for k in "${!POWERLINE_ICONS_OVERRIDES[@]}" ; do
 			__powerline_icons[$k]="${POWERLINE_ICONS_OVERRIDES[$k]}"
 		done
+	fi
+}
+
+__powerline_chassis() {
+	if [ -n "${POWERLINE_CHASSIS-}" ] ; then
+		__powerline_retval=("$POWERLINE_CHASSIS")
+
+	# Cas pour OpenBSD / NetBSD (sans VM)
+	elif [ -v OSTYPE ] &&  [[ "$OSTYPE" == "openbsd"* ]]; then
+		__powerline_retval=(server)
+	elif [ -v OSTYPE ] &&  [[ "$OSTYPE" == "netbsd"* ]]; then
+		__powerline_retval=(server)
+	elif [ -v OSTYPE ] &&  [[ "$OSTYPE" == "freebsd"* ]]; then
+		# FreeBSD VM
+		if sysctl kern.vm_guest |& grep -iq kvm ; then
+			__powerline_retval=(vm)
+		else
+			__powerline_retval=(server)
+		fi
+	elif [ -v OSTYPE ] &&  [[ "$OSTYPE" == "darwin"* ]]; then
+		__powerline_retval=(server)
+
+	# Cas pour Linux systemd/chassis, container ou vm
+	elif type -p hostnamectl &>/dev/null ; then
+		v=$(hostnamectl chassis 2>/dev/null)
+		if [ -n "$v" ] ; then
+			__powerline_retval=("$v")
+		else
+			v=$(hostnamectl status 2>/dev/null | grep -Po 'Chassis: \K.+')
+			if [ -n "$v" ] ; then
+				__powerline_retval=("$v")
+			fi
+		fi
+	elif [ -f /.dockerenv ] ; then
+		__powerline_retval=(container)
+	elif type -p systemd-detect-virt &>/dev/null && systemd-detect-virt --quiet ; then
+		# Systemd
+		__powerline_retval=(vm)
+	elif LC_ALL=C lscpu |& grep -iq 'hypervisor vendor' ; then
+		# Linux
+		__powerline_retval=(vm)
 	fi
 }
 
@@ -308,12 +455,16 @@ __powerline_autosegments() {
 		__powerline_retval+=(openstack)
 	fi
 
-	if type -p docker-compose >/dev/null ; then
+	if [ -f /usr/libexec/docker/cli-plugins/docker-compose ] || type -p docker-compose >/dev/null ; then
 		__powerline_retval+=(docker)
 	fi
 
 	if type -p kubectl >/dev/null ; then
 		__powerline_retval+=(k8s)
+	fi
+
+	if type -p aws >/dev/null ; then
+		__powerline_retval+=(aws)
 	fi
 
 	__powerline_retval+=(status jobs)
@@ -332,7 +483,16 @@ __powerline_init_segments() {
 
 
 __powerline_init_colors() {
+	# COMPATIBILITÉ: BASH 4.2.46 (RHEL7) a un bug dans l'opérateur += sur
+	# les tableaux associatifs. Les valeurs sont concaténées. Pour
+	# contourner cette erreur, on ne défini qu'une fois une couleurs.
+	#
+	# Vérifier avec bin/palette.sh que la palette est correcte.
 	__powerline_colors=(
+		[reset]="0"
+		[gras]="1"
+		[fade]="2"
+
 		# Nom de couleurs.
 		#
 		# Attention à définir avec 48; (c'est-à-dire couleur de fond).
@@ -340,13 +500,8 @@ __powerline_init_colors() {
 		#
 		# Les 8 couleurs élémentaires.
 		#
-		[blanc-cassé]="48;5;230"
-		[blanc-gras]="48;5;15;1"
+		[blanc-gras]="1;48;5;15"
 		[blanc]="48;5;15"
-		[bleu-canard]="48;5;31"
-		[bleu-docker]="48;5;39"
-		[bleu-kubernetes]="48;5;27"
-		[bleu]="48;5;20"
 		[bleu]="48;5;4"
 		[cyan]="48;5;6"
 		[gris-clair0]="48;5;250"
@@ -362,8 +517,6 @@ __powerline_init_colors() {
 		[gris-foncé4]="48;5;238"
 		[gris-foncé5]="48;5;239"
 		[gris]="48;5;240"
-		[indigo]="48;5;25"
-		[jaune-python]="48;5;220"
 		[jaune-vif]="48;5;220"
 		[jaune]="48;5;11"
 		[jaune]="48;5;3"
@@ -383,7 +536,7 @@ __powerline_init_colors() {
 		[jobs-fond]=gris-foncé4
 		[jobs-texte]=bleu-docker
 
-		[sortie-commande]="0"  # reset
+		[sortie-commande]=reset
 
 		[bleu-alpine]="48;2;11;88;126"
 		[logo-alpine-fond]=blanc
@@ -404,7 +557,7 @@ __powerline_init_colors() {
 		[logo-centos-fond]=magenta-centos
 		[logo-centos-texte]=blanc
 
-		[rouge-debian]="48;2;167;12;52;1"  # rouge gras
+		[rouge-debian]="1;48;2;167;12;52"  # rouge gras
 		[logo-debian-fond]=gris-clair4
 		[logo-debian-texte]=rouge-debian
 
@@ -419,6 +572,12 @@ __powerline_init_colors() {
 
 		[logo-freebsd-fond]=gris-foncé2
 		[logo-freebsd-texte]=rouge-sombre
+
+		[logo-openbsd-fond]=gris-foncé5
+		[logo-openbsd-texte]=jaune
+
+		[logo-netbsd-fond]=blanc
+		[logo-netbsd-texte]=orange
 
 		[violet-gentoo]="48;2;83;71;120"
 		[logo-gentoo-fond]=violet-gentoo
@@ -437,6 +596,11 @@ __powerline_init_colors() {
 		[vert-mint]="48;2;135;189;74"
 		[logo-mint-fond]=vert-mint
 		[logo-mint-texte]=blanc
+
+		[bleu-nixos]="48;2;126;186;228"
+		[gris-nixos]="48;2;245;247;250"
+		[logo-nixos-fond]=gris-nixos
+		[logo-nixos-texte]=bleu-nixos
 
 		[rouge-raspbian]="48;2;188;17;66"
 		[logo-raspbian-fond]=rouge-raspbian
@@ -461,7 +625,7 @@ __powerline_init_colors() {
 		[logo-windows-fond]=bleu-windows
 		[logo-windows-texte]=blanc
 
-		[commande-utilisateur]="0;1"
+		[commande-utilisateur]=gras
 
 		[docker-erreur]=violet
 		[docker-succes]=bleu-docker
@@ -469,7 +633,7 @@ __powerline_init_colors() {
 		[docker-icone]=blanc
 
 		[dollar-erreur]=rouge
-		[dollar-succes]="0"  # reset
+		[dollar-succes]=""
 
 		[etckeeper-propre-fond]=git-propre-fond
 		[etckeeper-propre-texte]=git-propre-texte
@@ -483,9 +647,15 @@ __powerline_init_colors() {
 		[git-propre-texte]=noir
 		[git-sync-fond]=gris-foncé2
 		[git-sync-texte]=gris-clair0
+		[git-lite-icone]=blanc
+		[git-lite-fond]=orange
+		[git-lite-texte]=blanc
 
 		[k8s-fond]=bleu-kubernetes
 		[k8s-texte]=gris-clair4
+
+		[aws-fond]=orange
+		[aws-texte]=gris-clair4
 
 		[maildir-fond]=jaune
 		[maildir-texte]=bleu-gras
@@ -541,19 +711,12 @@ __powerline_init_colors() {
 				# Attention à définir avec 48; (c'est-à-dire couleur de fond).
 				# Le script sait transposer en couleur de texte au besoin.
 				[blanc-cassé]="48;5;230"
-				[bleu]="48;5;20"
-				[bleu-gras]="48;5;20;1"
-				[bleu-canard]="48;5;31"
+				[bleu-gras]="1;48;5;4"
 				[bleu-docker]="48;5;39"
+				[bleu-canard]="48;5;31"
 				[bleu-kubernetes]="48;5;27"
 				[jaune-python]="48;5;220"
 				[indigo]="48;5;25"
-				[gris-clair]=gris-clair0
-				[gris-clair0]="48;5;250"
-				[gris-clair1]="48;5;251"
-				[gris-clair2]="48;5;252"
-				[gris-clair3]="48;5;253"
-				[gris-clair4]="48;5;254"
 				[orange]="48;5;166"
 				[rouge-sombre]="48;5;124"
 				[rose]="48;5;161"
@@ -578,13 +741,42 @@ __powerline_init_colors() {
 		loop=
 		for key in "${!__powerline_colors[@]}" ; do
 			color="${__powerline_colors[$key]}"
-			[ -z "${__powerline_colors[$color]-}" ] && continue
+			if [ -z "$color" ] ; then
+				continue
+			fi
+			if [ -z "${__powerline_colors[$color]-}" ] ; then
+				continue
+			fi
 			__powerline_colors[$key]="${__powerline_colors[$color]}"
 			loop=1
 		done
 	done
 }
 
+
+__powerline_resolve_color() {
+	local input="$1"
+	name="${input#[[:digit:]];}" # Supprimer la graisse
+	name="${name##[[:digit:]]*}" # Supprimer un code couleur (commence par un chiffre).
+	if [ -z "$name" ] ; then
+		__powerline_retval=("$input")
+	else
+		__powerline_retval=("${input/$name/${__powerline_colors[$name]-badcolor}}")
+	fi
+}
+
+__powerline_foreground_color() {
+	case "$1" in
+		'1;'*)
+			__powerline_retval=("${1/#1;48;/1;38;}")
+			;;
+		'2;'*)
+			__powerline_retval=("${1/#2;48;/2;38;}")
+			;;
+		*)
+			__powerline_retval=("${1/#48;/38;}")
+	esac
+}
 
 __powerline_palette() {
 	local auto ident
@@ -593,8 +785,7 @@ __powerline_palette() {
 		*256color)
 			auto="256color"
 			;;
-
-		24bit|truecolor|*-termite|*-direct|*-kitty)
+		24bit|truecolor|*-termite|*-direct|*-kitty|*ghostty)
 			auto="24bit"
 			;;
 		*)
@@ -616,16 +807,17 @@ __powerline_dollar() {
 	local last_exit_code=$1
 	# Déterminer la couleur du dollar
 	if [ "$last_exit_code" -gt 0 ] ; then
-		fg="1;${__powerline_colors[dollar-erreur]/#48;/38;}"
+		__powerline_foreground_color "${__powerline_colors[dollar-erreur]}"
+		fg="1;${__powerline_retval[0]}"
 	else
 		fg="${__powerline_colors[dollar-succes]}"
 	fi
-	color="${__powerline_colors[commande-utilisateur]}"
-	color="${color/#48;/38;}"
+	__powerline_foreground_color "${__powerline_colors[commande-utilisateur]}"
+	color="${__powerline_retval[0]}"
 
 	dollar="${__powerline_icons[invite]}"
 	# Afficher le dollar sur une nouvelle ligne, pas en mode powerline
-	__powerline_retval=("\\[\\e[${fg}m\\]$dollar\\[\\e[${color}m\\] ")
+	__powerline_retval=("\\[\\e[${fg}m\\]$dollar\\[\\e[0;${color}m\\] ")
 }
 
 
@@ -646,7 +838,6 @@ __powerline_render_default() {
 			continue
 		fi
 
-		old_bg=${bg-}
 		__powerline_split ':' "${segment}"
 		infos=("${__powerline_retval[@]}")
 		icon_fg="${infos[0]}"
@@ -656,16 +847,6 @@ __powerline_render_default() {
 		fi
 		icon="${icon//\\/\\\\}"
 
-		bg="${infos[2]%%:}"
-		bg="${__powerline_colors[$bg]-$bg}"
-		fg="${infos[3]%%:}"
-		fg="${__powerline_colors[$fg]-$fg}"
-		fg="${fg/#48;/38;}"
-
-		icon_fg="${icon_fg:-${fg/#1;/}}"
-		icon_fg="${__powerline_colors[$icon_fg]-$icon_fg}"
-		icon_fg="${icon_fg/#48;/38;}"
-
 		# Recoller les entrées suivantes avec ':'
 		printf -v text ":%s" "${infos[@]:4}"
 		text=${text:1}
@@ -673,19 +854,38 @@ __powerline_render_default() {
 		text="${text##[[:space:]]}"
 		text="${text%%[[:space:]]}"
 		# Sauter les segments vides
-		if [ -z "${text}" ] && [ -z "$icon" ]; then
+		if [ -z "${icon// }${text// }" ]; then
 			continue
 		fi
+
+		old_bg=${bg-}
+		__powerline_resolve_color "${infos[2]%%:}"
+		bg="${__powerline_retval[0]}"
+		__powerline_resolve_color "${infos[3]%%:}"
+		__powerline_foreground_color "${__powerline_retval[0]}"
+		fg="${__powerline_retval[0]}"
+
+		icon_fg="${icon_fg:-${fg/#1;}}" # Supprimer la graisse
+		icon_fg="${icon_fg/#2;}" # Supprimer la sécheresse
+		__powerline_resolve_color "$icon_fg"
+		__powerline_foreground_color "${__powerline_retval[0]}"
+		icon_fg="${__powerline_retval[0]}"
 
 		# D'abord, afficher le chevron avec la transition de fond.
 		if [ -n "${old_bg}" ] ; then
 			if [ "$bg" = "$old_bg" ]; then
 				# Séparateur léger, même couleurs que le texte.
 				separator="${__powerline_icons[sep-fin]-}"
-				colors="${fg};${bg}"
+				fgsep="$fg"
+				fgsep="${fgsep#1;}" # Supprimer la graisse
+				colors="$fgsep;$bg"
 			else
 				separator="${__powerline_icons[sep]-}"
-				colors="${old_bg/48;/38;};${bg}"
+				__powerline_foreground_color "$old_bg"
+				fgsep="${__powerline_retval[0]}"
+				fgsep="${fgsep#1;}" # Supprimer la graisse
+				fgsep="${fgsep#2;}" # Supprimer la sècheresse.
+				colors="$fgsep;$bg"
 			fi
 			ps+="\\[\\e[0;${colors}m\\]${separator}"
 		fi
@@ -699,13 +899,13 @@ __powerline_render_default() {
 			# l'icône dans la même couleur que le texte mais sans
 			# graisse par défaut, et de pouvoir changer la couleur
 			# de l'icône.
-			ps+="${icon_fg}m\\] $icon\\[\\e["
+			ps+="${icon_fg}m\\] $icon \\[\\e["
 		fi
 		ps+="${fg}m\\]"
 		if [ -n "${text}" ] ; then
 			# Affadir les @.
 			if [[ "$text" == *@* ]] ; then
-				text="${text//@/\\[\\e[2m\\]@\\[\\e[0;$fg;${bg}m\\]}"
+				text="${text//@/\\[\\e[2m\\]@\\[\\e[22m\\]}"
 			fi
 			ps+=" $text"
 		fi
@@ -715,7 +915,9 @@ __powerline_render_default() {
 	# Afficher le dernier chevron, transition du fond vers rien.
 	old_bg=${bg-}
 	if [ -n "${old_bg}" ] ; then
-		ps+="\\[\\e[0;${old_bg/#48;/38;}m\\]${__powerline_icons[sep]-}"
+		__powerline_foreground_color "$old_bg"
+		fgsep="${__powerline_retval[0]}"
+		ps+="\\[\\e[0;${fgsep}m\\]${__powerline_icons[sep]-}"
 	fi
 
 	# Retourner l'invite de commande
@@ -741,7 +943,6 @@ __powerline_render_align_right() {
 			continue
 		fi
 
-		old_bg=${bg-}
 		__powerline_split ':' "${segment}"
 		infos=("${__powerline_retval[@]}")
 		icon_fg="${infos[0]}"
@@ -751,16 +952,6 @@ __powerline_render_align_right() {
 		fi
 		icon="${icon//\\/\\\\}"
 
-		bg="${infos[2]%%:}"
-		bg="${__powerline_colors[$bg]-$bg}"
-		fg="${infos[3]%%:}"
-		fg="${__powerline_colors[$fg]-$fg}"
-		fg="${fg/#48;/38;}"
-
-		icon_fg="${icon_fg:-${fg/#1;/}}"
-		icon_fg="${__powerline_colors[$icon_fg]-$icon_fg}"
-		icon_fg="${icon_fg/#48;/38;}"
-
 		# Recoller les entrées suivantes avec ':'
 		printf -v text ":%s" "${infos[@]:4}"
 		text=${text:1}
@@ -769,14 +960,35 @@ __powerline_render_align_right() {
 			continue
 		fi
 
+		old_bg=${bg-}
+		__powerline_resolve_color "${infos[2]%%:}"
+		bg="${__powerline_retval[0]}"
+		__powerline_resolve_color "${infos[3]%%:}"
+		__powerline_foreground_color "${__powerline_retval[0]}"
+		fg="${__powerline_retval[0]}"
+
+		if [ -n "${icon_fg}" ] ; then
+			__powerline_resolve_color "$icon_fg"
+			__powerline_foreground_color "${__powerline_retval[0]}"
+			icon_fg="${__powerline_retval[0]}"
+		else
+			icon_fg="${icon_fg:-${fg/#1;}}"
+			icon_fg="${fg/#2;}"
+		fi
+
 		# D'abord, afficher le chevron avec la transition de fond.
 		if [ "$bg" = "$old_bg" ] ; then
 			# Séparateur léger, même couleurs que le texte
 			separator="${__powerline_icons[sep-fin]}"
-			colors="${fg};${bg}"
+			fgsep="${fg#1;}"
+			fgsep="${fgsep#2;}"
+			colors="$fgsep;$bg"
 		else
 			separator="${__powerline_icons[sep]}"
-			colors="${bg/48;/38;};${old_bg}"
+			__powerline_foreground_color "$bg"
+			fgsep="${__powerline_retval[0]#1;}"
+			fgsep="${fgsep#2;}"
+			colors="$fgsep;$old_bg"
 		fi
 		ps+="\\[\\e[0;${colors%;}m\\]${separator}"
 		raw_ps+="$separator"
@@ -851,8 +1063,14 @@ __powerline_init_logo() {
 			cygwin|msys|win32)
 				id=windows
 				;;
-			*bsd*)
+			freebsd*)
 				id=freebsd
+				;;
+			openbsd*)
+				id=openbsd
+				;;
+			netbsd*)
+				id=netbsd
 				;;
 			*)
 				id="$OSTYPE"
@@ -889,6 +1107,12 @@ __powerline_init_logo() {
 		freebsd)
 			printf -v s ":freebsd:logo-freebsd-fond:logo-freebsd-texte:"
 			;;
+		openbsd)
+			printf -v s ":openbsd:logo-openbsd-fond:logo-openbsd-texte:"
+			;;
+		netbsd)
+			printf -v s ":netbsd:logo-netbsd-fond:logo-netbsd-texte:"
+			;;
 		gentoo)
 			printf -v s ":gentoo:logo-gentoo-fond:logo-gentoo-texte:"
 			;;
@@ -900,6 +1124,9 @@ __powerline_init_logo() {
 			;;
 		manjaro)
 			printf -v s ":manjaro:logo-manjaro-fond:logo-manjaro-texte:"
+			;;
+		nixos)
+			printf -v s ":nixos:logo-nixos-fond:logo-nixos-texte:"
 			;;
 		*suse*)
 			printf -v s ":suse:logo-suse-fond:logo-suse-texte:"
@@ -937,6 +1164,22 @@ __powerline_segment_logo() {
 	)
 }
 
+__powerline_segment_aws() {
+    local profile=""
+
+    # Récupérer le profil depuis les variables d'environnement
+    profile="${AWS_PROFILE-${AWS_DEFAULT_PROFILE-}}"
+
+    # N'afficher que si un profil est explicitement défini
+    if [ -n "${profile}" ]; then
+        __powerline_retval=(
+            "blanc:aws:aws-fond:aws-texte:${profile}"
+        )
+    else
+        __powerline_retval=()
+    fi
+}
+
 __powerline_segment_docker() {
 	local bg
 	local composefiles
@@ -949,9 +1192,20 @@ __powerline_segment_docker() {
 
 	__powerline_retval=()
 
+	composefiles=()
 	if [ -v COMPOSE_FILE ] ; then
 		__powerline_split ':' "${COMPOSE_FILE}"
-		composefiles=("${__powerline_retval[@]}")
+		for file in "${__powerline_retval[@]}" ; do
+			if [ -f "$file" ] ; then
+				composefiles+=("$file")
+				if [ -d "${file%/*}"  ] && [ -z "${dir-}" ]  ; then
+					dir="${file%/*}"
+				fi
+			fi
+		done
+		if [ -z "$dir" ] ; then
+			dir="$PWD"
+		fi
 	else
 		__powerline_find_parent "$PWD" docker-compose.yml
 		if [ -z "${__powerline_retval[*]}" ] ; then
@@ -961,6 +1215,11 @@ __powerline_segment_docker() {
 			"${__powerline_retval[*]}"
 			"${__powerline_retval[*]/.yml/.override.yml}"
 		)
+		dir="${composefiles[0]%/*}"
+	fi
+
+	if [ "${#composefiles[@]}" -eq 0 ] ; then
+		return
 	fi
 
 	# Extraire les noms uniques des services. La locale LANG=C est plus rapide pour sort.
@@ -968,7 +1227,6 @@ __powerline_segment_docker() {
 	# Compter le nombre de services dans le fichier compose.
 	readarray service_names_a <<<"${service_names}"
 	service_nr="${#service_names_a[@]}"
-	dir="${__powerline_retval%/*}"
 	project="${COMPOSE_PROJECT_NAME-${dir##*/}}"
 
 	# Lister les conteneurs associé au projet. docker (en go) est beaucoup
@@ -1034,7 +1292,7 @@ __powerline_segment_git() {
 
 	# Si pas de dossier .git parent, zapper.
 	__powerline_find_parent "${PWD}" .git
-	if [ -z "${__powerline_retval[*]}" ] ; then
+	if [ -z "${__powerline_retval[*]-}" ] ; then
 		__powerline_retval=()
 		return
 	fi
@@ -1122,7 +1380,7 @@ __powerline_segment_git_sync() {
 }
 
 
-# Analye git status --porcelain=v2
+# Analyse git status --porcelain=v2
 __powerline_parse_git_status_v2() {
 	local status="$1"
 	# Le retour de la fonction : sha, name, upstream, ahead/behind
@@ -1219,6 +1477,40 @@ __powerline_init_git() {
 	fi
 }
 
+# GIT branch uniquement, sans status
+__powerline_segment_git_lite() {
+	local branch
+	local detached
+
+	# Si pas de dossier .git parent, zapper.
+	__powerline_find_parent "${PWD}" .git
+	if [ -z "${__powerline_retval[*]-}" ] ; then
+		__powerline_retval=()
+		return
+	fi
+
+	read -r -a head < "${__powerline_retval[0]}/HEAD"
+
+	if [[ "${head[0]}" == *"ref:"* ]] ; then
+	 	branch=${head[1]##refs/heads/}
+	else
+		# Cas pour detached
+		detached=1
+		if desc="$(git describe --tags --abbrev=7 2>/dev/null)" ; then
+			branch="${desc}"
+		else
+			# Au pire des cas, utiliser la SHA du commit courant.
+			branch="${head[0]:0:7}"
+		fi
+	fi
+
+	anchor="${__powerline_icons[git-detached]}"
+
+	__powerline_retval=(
+		"git-lite-icone:git:git-lite-fond:git-lite-texte:${detached:+ ${anchor}}${branch}"
+	)
+}
+
 
 # HEURE
 
@@ -1283,12 +1575,13 @@ __powerline_init_hostname() {
 		esac
 	fi
 
-	__powerline_context[hostname-segment]=":hostname:${bg}:${fg}:${text}"
+	__powerline_context[hostname-segment]=":${__powerline_context[chassis]}:${bg}:${fg}:${text}"
 }
 
 __powerline_hostname_color8() {
-	local classe="$1"
-	case "$classe" in
+	local class="$1"
+
+	case "$class" in
 		local)
 			__powerline_retval=(vert:noir)
 			;;
@@ -1298,7 +1591,7 @@ __powerline_hostname_color8() {
 		remote)
 			__powerline_retval=(bleu:blanc)
 			;;
-		container|virtualmachine)
+		container|server|vm)
 			__powerline_retval=(cyan:noir)
 			;;
 		*)
@@ -1361,7 +1654,7 @@ __powerline_hostname_color24() {
 	local shift_hue
 	local num_hue
 	case "$class" in
-		local)
+		convertible|desktop|laptop)
 			# Teintes : 5 ou 9 -> 2 valeurs
 			shift_hue=5
 			num_hue=2
@@ -1371,7 +1664,7 @@ __powerline_hostname_color24() {
 			shift_hue=13
 			num_hue=3
 			;;
-		container|virtualmachine)
+		container|server|vm)
 			# Teintes : {45..77}/4 -> 9 valeurs
 			shift_hue=45
 			num_hue=9
@@ -1406,25 +1699,21 @@ __powerline_hostname_color24() {
 }
 
 __powerline_hostname_class() {
-	__powerline_retval=(local)
+	local chassis="$1"
 
-	if [ "${USER}" = "root" ] ; then
+	if [ "${USER-}" = "root" ] ; then
 		__powerline_retval=(root)
-	elif [ -f /.dockerenv ] ; then
-		__powerline_retval=(container)
-	elif type -p systemd-detect-virt &>/dev/null && systemd-detect-virt --quiet ; then
-		# Systemd
-		__powerline_retval=(virtualmachine)
-	elif LC_ALL=C lscpu |& grep -iq 'hypervisor vendor' ; then
-		# Linux
-		__powerline_retval=(virtualmachine)
-	elif sysctl kern.vm_guest |& grep -iq kvm ; then
-		# FreeBSD
-		__powerline_retval=(virtualmachine)
 	elif [ -v SSH_CLIENT ] ; then
 		__powerline_retval=(remote)
-	elif [ -v POWERLINE_HOSTNAME_CLASS ] ; then
-		__powerline_retval=("${POWERLINE_HOSTNAME_CLASS}")
+	else
+		case "$chassis" in
+			container)
+				__powerline_retval=(remote)
+				;;
+			*)
+				__powerline_retval=(local)
+				;;
+		esac
 	fi
 }
 
@@ -1455,19 +1744,25 @@ __powerline_segment_jobs() {
 # KUBERNETES
 
 __powerline_segment_k8s() {
-	local contexte namespace texte
+	local contexte namespace texte configs config
+	local config_potentiellement_valide=non
 	local format='{..current-context}|{..namespace}'
-	local config="${KUBECONFIG-$HOME/.kube/config}"
+
+	IFS=':' read -ra configs <<<"${KUBECONFIG-$HOME/.kube/config}"
 
 	__powerline_retval=()
 
-	# Arrêt rapide si pas de fichier de configuration.
-	if ! [ -f "$config" ] ; then
-		return
-	fi
+	# Analyse de la configuration
+	for config in "${configs[@]}" ; do
+		if [[ -f "$config" && "$(< "$config")" == *current-context* ]] ; then
+			config_potentiellement_valide=oui
+			break
+		fi
+	done
 
-	# Arrêt rapide si pas de contexte configuré.
-	if ! grep -Fq current-context "$config" ; then
+	# Arrêt rapide si pas de fichier de configuration ou si aucun contexte
+	# actif n'est renseigné.
+	if [[ "$config_potentiellement_valide" != oui ]] ; then
 		return
 	fi
 
@@ -1542,14 +1837,21 @@ __powerline_segment_pwd() {
 	local short_pwd
 	local icon
 
-	__powerline_shorten_dir "$(dirs +0)"
+	"__powerline_shorten_dir_${POWERLINE_PWD_SHORTENING-initiale}" "$PWD"
 	local short_pwd="${__powerline_retval[0]}"
 
 	__powerline_split / "${short_pwd}"
 	local parts=("${__powerline_retval[@]}")
 
 	__powerline_retval=()
-	for part in "${parts[@]}" ; do
+	for i in "${!parts[@]}" ; do
+		part="${parts[$i]}"
+		if [ "$((i+1))" -eq "${#parts[@]}" ] ; then
+			graisse=1
+		else
+			graisse=2
+		fi
+
 		if [ "${part}" = '~' ] ; then
 			icon="home"
 			part=
@@ -1559,7 +1861,7 @@ __powerline_segment_pwd() {
 			colors="pwd-sys-fond:pwd-sys-texte"
 		else
 			icon=
-			colors="pwd-fond:pwd-texte"
+			colors="pwd-fond:$graisse;pwd-texte"
 		fi
 		__powerline_retval+=(":$icon:$colors:$part")
 	done
@@ -1572,10 +1874,19 @@ __powerline_segment_python() {
 	local text
 
 	if [ -v VIRTUAL_ENV ] ; then
-		# Lire le nom du venv dans le prompt. (pour les .venv/bin/activate)
-		if ! text="$(grep -m 1 -Po 'PS1="\(\K[^)]+' "$VIRTUAL_ENV/bin/activate" 2>/dev/null)" ; then
+		# Lire le nom du venv dans VIRTUAL_ENV_PROMPT
+		if [ -v VIRTUAL_ENV_PROMPT ] ; then
+			# virtual env créé avec module venv
+			if  [[ ${VIRTUAL_ENV_PROMPT} =~ ^\((.*)\)[[:space:]]$ ]]; then
+				text=${BASH_REMATCH[1]}
+			else
+				text=${VIRTUAL_ENV_PROMPT}
+			fi
+		elif [ -f "$VIRTUAL_ENV/pyvenv.cfg" ] ; then
+		    text=$(grep -oP "prompt = '\K[^']+" "$VIRTUAL_ENV/pyvenv.cfg")
+		else
 			# ou utiliser le dossier
-				text=${VIRTUAL_ENV##*/}
+			text=${VIRTUAL_ENV##*/}
 		fi
 	elif [ -v CONDA_ENV_PATH ] ; then
 		text=${CONDA_ENV_PATH##*/}
@@ -1741,10 +2052,17 @@ __powerline_hsl2rgb() {
 }
 
 
-# Abrège les dossiers intermédiaires pour raccourcir le chemine complet.
-__powerline_shorten_dir() {
-	local short_pwd
+# Abrège les dossiers intermédiaires pour raccourcir le chemin complet.
+__powerline_shorten_dir_initiale() {
+	local short_pwd=
 	local dir="$1"
+
+	# Abbréger home avec ~
+
+	# shellcheck disable=SC2295
+	if [ -z "${dir##$HOME*}" ] ; then
+		dir="~${dir##$HOME}"
+	fi
 
 	__powerline_split / "${dir##/}"
 	dir_parts=("${__powerline_retval[@]}")
@@ -1757,18 +2075,9 @@ __powerline_shorten_dir() {
 	fi
 	# Leave the last 2 part parts alone.
 	local last_index="$(( number_of_parts - 3 ))"
-	local short_pwd=""
-
-	# Check for a leading slash.
-	if [[ "${dir:0:1}" == "/" ]]; then
-		# If there is a leading slash, add one to `short_pwd`.
-		short_pwd+='/'
-	fi
 
 	for i in "${!dir_parts[@]}"; do
-		# Append a '/' before we do anything (provided this isn't the
-		# first part).
-		if [[ "$i" -gt "0" ]]; then
+		if ! [ '~' = "${dir_parts[$i]}" ] ; then
 			short_pwd+='/'
 		fi
 
@@ -1782,6 +2091,35 @@ __powerline_shorten_dir() {
 			# the middle like this.
 			short_pwd+="${dir_parts[i]:0:1}"
 		fi
+	done
+
+	__powerline_retval=("$short_pwd")
+}
+
+__powerline_shorten_dir_ellipse() {
+	local short_pwd=
+	local dir="$1"
+
+	dir="${dir/$HOME/'~'}"  # Abbréger home avec ~
+
+	__powerline_split / "${dir##/}"
+	dir_parts=("${__powerline_retval[@]}")
+	local number_of_parts=${#dir_parts[@]}
+
+	# Ne pas abréger les chemins de moins de 5 segments
+	if [[ "$number_of_parts" -lt "5" ]]; then
+		__powerline_retval=("${dir}")
+		return
+	fi
+	# Laisser les deux derniers dossiers.
+	local last_index="$(( number_of_parts - 2 ))"
+
+	for part in "${dir_parts[@]:0:2}" $'\u2026' "${dir_parts[@]:$last_index}"; do
+		if ! [ '~' = "$part" ] ; then
+			short_pwd+=/
+		fi
+
+		short_pwd+="$part"
 	done
 
 	# Return the resulting short pwd.
