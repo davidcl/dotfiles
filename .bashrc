@@ -5,6 +5,10 @@ if [ -f /etc/bashrc ]; then
         . /etc/bashrc
 fi
 
+# when non interactive do not customize anything
+if [[ $- == *i* ]]; then
+
+
 # WSL specific setup
 if [ -f /etc/wsl.conf ]; then
     # Mount Alpine vhdx as a workdir
@@ -64,7 +68,7 @@ export EDITOR=/usr/bin/vim
 export SVN_EDITOR=/usr/bin/vim
 
 # User specific aliases and functions
-alias dotfiles="/usr/bin/git --git-dir=/home/davidcl/.dotfiles.git/ --work-tree=/home/davidcl"
+alias dotfiles="LC_ALL=en_US.utf8 /usr/bin/git --git-dir=/home/davidcl/.dotfiles.git/ --work-tree=/home/davidcl"
 alias make="LANG=en_US.utf8 nice make -j\$(nproc)"
 alias git="LANG=en_US.utf8 /usr/bin/git"
 alias xpath="xmllint --xpath"
@@ -252,3 +256,7 @@ PATH="$PATH:/home/davidcl/tools/go/bin"
  PATH="$PATH:/home/davidcl/.opam/default/bin"
 
 export PATH 
+
+# when non interactive do not customize anything
+fi
+
