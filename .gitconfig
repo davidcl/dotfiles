@@ -15,6 +15,7 @@
     editor = vim
     attributesfile = ~/.gitattributes
     autocrlf = input
+    pager = less -r
 [gitreview]
     username = clement.david
 [merge]

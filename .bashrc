@@ -198,6 +198,10 @@ test -n "$PS1" && echo 1>&2 MEMCPY_CHECK_=$MEMCPY_CHECK_
 
 export SCI_DISABLE_EXCEPTION_CATCHING=1
 
+if [ -e /etc/pki/tls/cert.pem ]; then
+    export SSL_CERT_FILE=/etc/pki/tls/cert.pem
+fi
+
 # debug alias
 export ASAN_OPTIONS=detect_leaks=0
 export JAVA_DEBUG_OPTIONS="-Xint -Xdebug -Xnoagent -Xrunjdwp:transport=dt_socket,address=8010,server=y,suspend=n -XX:+UnlockDiagnosticVMOptions -XX:-LogVMOutput -XX:-DisplayVMOutput -XX:-PrintVMOptions"
